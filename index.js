@@ -2,24 +2,71 @@ const express = require("express");
 // const  con = require("./config");
 // const { body, validationResult } = require("express-validator");
 // const bcrypt = require('bcrypt');
-const multer = require('multer');
-const ejs = require('ejs');
-const path = require('path');
+const multer = require("multer");
+const ejs = require("ejs");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: "./public/upload/",
+  filename:  (req, file, cb)=> {
+    cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+    );
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {fileSize: 1000000},
+  fileFilter: (req, file, cb)=>{
+    checkFileType(file , cb);
+  }
+}).single('myImage');
 
 
+const checkFileType=(file, cb)=>{
+  const filetypes = /jpeg|jpg|png|gif/;
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = filetypes.test(file.mimetype);
+  if(mimetype && extname){
+    return cb(null, true);
+  }
+  else{
+    cb('Error: Images only!')
+  }
+}
 
 const app = express();
 
-app.set('view engine', 'ejs');
-app.use(express.static('./public'));
+app.set("view engine", "ejs");
+app.use(express.static("./public"));
 // app.use(express.json());
 
-app.get('/',(req,resp)=>resp.render('index'));
+app.get("/", (req, resp) => resp.render("index"));
 
-// app.post('/upload', (req, resp)=>{
+// this is portion of uploading
 
-// });
-
+app.post('/upload', (req, resp)=>{
+  upload(req, resp, (err)=>{
+    if(err){
+      resp.render('index' , {
+        msg:err
+      })
+    }
+    else {
+      if(req.file == undefined){
+        resp.render('index' , {
+          msg:'Error : No File selected'
+        })
+      }
+      else {
+        resp.render('index' , {
+          msg:'File uploaded',
+          file: `upload/${req.file.filename}`
+        })
+      }
+    }
+  })
+});
 
 // app.get("/", (req, resp) => {
 //   con.query("select * from user_data where deleted_at is null", (err, result) => {
@@ -27,7 +74,6 @@ app.get('/',(req,resp)=>resp.render('index'));
 //       resp.send(result);
 //     });
 // });
-
 
 // app.post("/checkEmail", (req, resp) => {
 //   const email = req.body.email
@@ -44,7 +90,6 @@ app.get('/',(req,resp)=>resp.render('index'));
 // );
 // });
 
-
 // app.post(
 //   "/signup",
 //   [
@@ -58,6 +103,7 @@ app.get('/',(req,resp)=>resp.render('index'));
 //       return true;
 //     }),
 //   ], async (req, resp) => {
+
 //     const errors = validationResult(req);
 //     if (!errors.isEmpty()) {
 //       return resp.status(400).json({ errors: errors.array() });
@@ -85,7 +131,7 @@ app.get('/',(req,resp)=>resp.render('index'));
 //     console.log("error is :", err);
 //   }
 // );
-    
+
 //   }
 // );
 
